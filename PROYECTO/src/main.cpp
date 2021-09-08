@@ -10,6 +10,7 @@
 //********************************************************************************
 #include <Arduino.h>
 #include <ESP32Servo.h>
+#include "s7.h"
 
 Servo miServo;
 
@@ -30,6 +31,19 @@ Servo miServo;
 #define pinPWMv 27 // led verde
 
 #define pinServo 33 // señal para el servo
+
+#define segA 21 // pines para los displays
+#define segB 19
+#define segC 18
+#define segD 22
+#define segE 17
+#define segF 16
+#define segG 4
+#define segdp 2
+
+#define display1 14 //transistor para los displays
+#define display2 12
+#define display3 13
 
 //********************************************************************************
 // Prototipos de funciones
@@ -61,6 +75,10 @@ int i = 0;        // interrupcion del pushbutton
 int btnPress = 0; // valor al presionar el boton
 int lastTime = 0; // valor para evitar el anti rebote del pushbutton
 
+int valDecena = 0;
+int valUnidad = 0;
+int valDecima = 0;
+
 //********************************************************************************
 // ISR
 //********************************************************************************
@@ -86,6 +104,17 @@ void setup()
   attachInterrupt(btn, ISR, HIGH);
 
   configurarPWM();
+
+   configurarDisplay(segA, segB, segC, segD, segE, segF, segG, segdp);
+
+    pinMode(display1, OUTPUT);
+    pinMode(display2, OUTPUT);
+    pinMode(display3, OUTPUT);
+
+    digitalWrite(display1, HIGH);
+    digitalWrite(display2, HIGH);
+    digitalWrite(display3, HIGH);
+    desplegarSeg(0);
 
   pinMode(pinPWMv, OUTPUT);
   pinMode(pinPWMr, OUTPUT);
@@ -129,6 +158,31 @@ void loop()
     }
     btnPress = 0; // si el pushbutton no se presiona no se ejecuta nada más
   }
+
+  if (millis() - lastTime7seg >= sampleTime7seg ){
+        lastTime7seg = millis();
+        digitalWrite(display1, HIGH);
+      digitalWrite(display2, LOW);
+      digitalWrite(display3, LOW);
+      desplegarSeg(valDecena);
+      desplegarPun(0);
+      delay(5);
+
+      digitalWrite(display1, LOW);
+      digitalWrite(display2, HIGH);
+      digitalWrite(display3, LOW);
+      desplegarSeg(valUnidad);
+      desplegarPun(1);
+      delay(5);
+
+      digitalWrite(display1, LOW);
+      digitalWrite(display2, LOW);
+      digitalWrite(display3, HIGH);
+      desplegarSeg(valDecima);
+      desplegarPun(0);
+      delay(5);
+
+    }
 }
 
 //****************************************************************
@@ -155,6 +209,9 @@ void emaADC(void)
   adcRaw = analogRead(pinAnalog);                                       // valor adcRaw igual al valor del lm35
   adcFiltradoEMA = (alpha * adcRaw) + ((1.0 - alpha) * adcFiltradoEMA); // filtrado EMA
   voltaje = ((adcFiltradoEMA * 5000 / 4095.0) / 10);                    // formula para pasar de adcRaw a grados
+  valDecena = (voltaje / 10);
+    valUnidad = (voltaje - (valDecena * 10));
+    valDecima = ((voltaje * 10) - (valDecena * 100 + valUnidad * 10));
 }
 
 //****************************************************************
